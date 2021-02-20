@@ -3,6 +3,7 @@ if(!global.db){
 }
 let data = { rs: {} };
 let col = db.collection("risky_disc_data");
+let query = {};
 
 function decompressRS(data){
 	return {
@@ -32,6 +33,11 @@ data.get = function(store, key){
 data.update = function(store, key, datakey, value){
 	col.updateOne({key, store}, {$set: {[`data.${datakey}`]: value}});
 }
+data.queryUpdate = function(store, key, datakey, value){
+	if(!query[store]) query[store] = {};
+	if(!query[store][key]) query[store][key] = {};
+	query[store][key][datakey] = value;
+}
 data.rs.get = function(id){
 	return new Promise(res => {
 		db.collection("riskystore_1").findOne({key: id + "_RISKYDATA"}, (err, doc) => {
@@ -42,5 +48,17 @@ data.rs.get = function(id){
 		});
 	});
 }
+
+setInterval(()=>{
+	for(store in query)
+		for(key in query[store]){
+			let req = {};
+			for(datakey in query[store][key])
+				req[`data.${datakey}`] = query[store][key][datakey];
+			col.updateOne({key, store}, {$set: req});
+		}
+	
+	query = {};
+}, 60000);
 
 module.exports = data;

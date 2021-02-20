@@ -1,9 +1,13 @@
-let priv = require("./priv.js");
 let djs = require("discord.js");
-let util = require("./utils/util.js");
-let cli = new  djs.Client();
 let fs = require("fs");
+let priv = require("./priv.js");
+let util = require("./utils/util.js");
+
+let cli = new djs.Client();
 let prefix = "!";
+let commandsAwaiting = {};
+let commands = [];
+let memberActivity = {};
 
 if(!global.db){
 	let mongo = require("mongodb");
@@ -11,19 +15,17 @@ if(!global.db){
 	mongo.MongoClient.connect(priv.mongo, { useUnifiedTopology: true }, (err, cli) => {
 		if(err)
 			return process.exit(console.log("Failed to get database") || 1);
-		global.db = cli.db('main_db');;
-		loadCmds();
+		global.db = cli.db('main_db');
+		initCommands();
 	})
 }
 
-let commandsAwaiting = {};
-let cmds = [];
-function loadCmds(){
+function initCommands(){
 	fs.readdir("./commands/", (_,files)=>{
 		files.forEach(file=>{
 			try{
-				cmds.push(require("./commands/"+file));
-				console.log("registered", cmds[cmds.length-1]);
+				commands.push(require("./commands/"+file));
+				console.log("registered", commands[commands.length-1]);
 			}catch(e){
 				console.log("error loading command file "+file,"\n",e);
 			}
@@ -35,12 +37,13 @@ function addToAwaiting(m, data){
 	commandsAwaiting[m.author.id] = data;
 }
 
-
 cli.on("message", m=>{
 	if(m.channel.id != "659219861393637377" && m.channel.id != "812376751438430308" && m.channel.id != "330456925181444106")
 		return;
-	if(!m.content.startsWith(prefix) && !commandsAwaiting[m.author.id])
+	if(!m.content.startsWith(prefix) && !commandsAwaiting[m.author.id]){
+		//memberActivity
 		return;
+	}
 		
 	let args = m.content.split(" ");
 	let ucmd = args.splice(0,1)[0].slice(prefix.length, 2000);
@@ -61,7 +64,7 @@ cli.on("message", m=>{
 		return;
 	}
 	
-	cmds.forEach(cmd=>{
+	commands.forEach(cmd=>{
 		if(cmd.data.name.toLowerCase() == ucmd.toLowerCase())
 			commandsAwaiting[m.author.id] = cmd.run(m, args, addToAwaiting);
 	});
@@ -87,5 +90,6 @@ setInterval(() => {
 			delete commandsAwaiting[id];
 		}
 	}
-}, 5000)
+}, 5000);
+
 cli.login(priv.token);
