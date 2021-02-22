@@ -1,5 +1,6 @@
 let util = require("../utils/util.js");
 let data = require("../utils/data.js");
+let conf = require("../conf.js");
 let waiting = {};
 module.exports.data = {
 	name: "verify",
@@ -17,8 +18,8 @@ util.getLinkedAccount("250329235497943040").then(console.log); // ['bloxlink', '
 */
 
 function verify(member, robloxInfo){
-	member.roles.add(member.guild.roles.cache.get("239826816972488705"));
-	member.roles.remove(member.guild.roles.cache.get("812375598278246400"));
+	member.roles.add(conf.roles.member);
+	member.roles.remove(conf.roles.unverified);
 	member.setNickname(robloxInfo.name);
 	data.set("userdata", member.id, {robloxInfo, activity: {}});
 
