@@ -3,7 +3,7 @@ let data = require("../utils/data.js");
 let waiting = {};
 module.exports.data = {
 	name: "stats2",
-	
+	alias: ["stats3"]
 }
 
 module.exports.run = (m, args, awaiting)=>{
