@@ -72,9 +72,8 @@ function getBaseEmbed(title, desc, col, fields){
 		.setColor(({fail: 0xe74c3c, succ: 0x3498db, prog: 0x7827ff})[col] || 0x3498db)
 		.setTitle(title || "")
 		.setDescription(desc || "");
-	(fields || []).forEach(field => {
+	for(let field of (fields || []))
 		emb.addField(String(field[0]), String(field[1]), field[2]);
-	});
 	
 	return emb;
 }

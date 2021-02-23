@@ -11,30 +11,54 @@ let commands = [];
 let memberActivity = {};
 
 if(!global.db){
-	let mongo = require("mongodb");
+	let { MongoClient } = require("mongodb");
 
-	mongo.MongoClient.connect(priv.mongo, { useUnifiedTopology: true }, (err, cli) => {
+	MongoClient.connect(priv.mongo, { useUnifiedTopology: true, useNewUrlParser: true }, (err, cli) => {
 		if(err)
 			return process.exit(console.log("Failed to get database") || 1);
-		global.db = cli.db('main_db');
+		global.db = cli.db("main_db");
 		data = data = require("./utils/data.js");
 		initCommands();
 	})
 }
 
 function initCommands(){
-	fs.readdir("./commands/", (_,files)=>{
-		files.forEach(file=>{
-			try{
-				commands.push(require("./commands/"+file));
-				console.log("registered", commands[commands.length-1]);
-			}catch(e){
-				console.log("error loading command file "+file,"\n",e);
-			}
-		})
+	fs.readdir("./commands/", (_, files)=>{
+		for(let file of files)
+			try { registerCommand(require("./commands/" + file), file); }
+			catch(e) { console.log(`error loading command file ${file}: \n${e}`); }
 	});
 }
-
+function registerCommand(cmd, file){
+	if(!cmd.data.name || !cmd.run)
+		return console.log(`error loading command file ${file}: \nmissing name and or main func`);
+	if(!cmd.data.alias)
+		cmd.data.alias = [];
+	
+	commands.push(cmd);
+}
+async function handleGameReact(){
+	let channel = await cli.channels.fetch(conf.channels.gamerole);
+	let guild = await cli.guilds.fetch(conf.guild);
+	let msg = (await channel.messages.fetch({ limit: 5 })).filter(msg => msg.author.id == cli.user.id).first();
+	if(!msg){
+		msg = await channel.send(util.getBaseEmbed("React to receive the \"Game\" role", "Members of the Discord can mention this role whenever players are needed for a game!"))
+		msg.react(conf.blobEmoji);
+	}
+	cli.on("messageReactionAdd", async (msgRct, user) => {
+		if(!user.bot && msgRct.message == msg && msgRct.emoji.id == conf.blobEmoji){
+			let memb = await guild.members.fetch(user);
+			memb.roles.add(conf.roles.game);
+		}
+	})
+	cli.on("messageReactionRemove", async (msgRct, user) => {
+		if(!user.bot && msgRct.message == msg && msgRct.emoji.id == conf.blobEmoji){
+			let memb = await guild.members.fetch(user);
+			memb.roles.remove(conf.roles.game);
+		}
+	})
+	console.log("React role loaded");
+}
 function addToAwaiting(m, data){
 	commandsAwaiting[m.author.id] = data;
 }
@@ -49,7 +73,7 @@ cli.on("message", m=>{
 	}
 		
 	let args = m.content.split(" ");
-	let ucmd = args.splice(0,1)[0].slice(conf.prefix.length, 2000);
+	let ucmd = args.splice(0, 1)[0].slice(conf.prefix.length, 2000);
 	
 	if(commandsAwaiting[m.author.id]){
 		let info = commandsAwaiting[m.author.id];
@@ -67,15 +91,16 @@ cli.on("message", m=>{
 		return;
 	}
 	
-	commands.forEach(cmd=>{
+	for(let cmd of commands)
 		if(cmd.data.name.toLowerCase() == ucmd.toLowerCase())
 			commandsAwaiting[m.author.id] = cmd.run(m, args, addToAwaiting);
-	});
 });
 
 cli.on("ready", async ()=>{
 	let guild = await cli.guilds.fetch(conf.guild);
-	guild.members.fetch(); // caches all members
+	//guild.members.fetch(); // caches all members
+	console.log("Bot logged in & guild registered");
+	handleGameReact();
 });
 
 cli.on("guildMemberAdd", m => {
@@ -97,6 +122,7 @@ setInterval(async () => { // handle awaiting command cleanup & member activity u
 			delete commandsAwaiting[id];
 		}
 	}
+
 	let monthN = new Date().getUTCMonth();
 	let guild = await cli.guilds.fetch(conf.guild);
 	for(let uid in memberActivity){
@@ -149,6 +175,6 @@ setInterval(async () => { // handle old active member role removing
 		if(changed)
 			data.update("userdata", memb.id, "activity", activity);
 	});
-}, 10000);
+}, 60000 * 5);
 
 cli.login(priv.token);

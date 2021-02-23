@@ -4,7 +4,7 @@ let conf = require("../conf.js");
 let waiting = {};
 module.exports.data = {
 	name: "verify",
-	
+	alias: []
 }
 /*
 util.rbxFromDisc("250329235497943040").then(console.log); // {id, name}
