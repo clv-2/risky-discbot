@@ -59,6 +59,35 @@ async function handleGameReact(){
 	})
 	console.log("React role loaded");
 }
+async function handleLiveServers(){
+	let channel = await cli.channels.fetch(conf.channels.servers);
+	let guild = await cli.guilds.fetch(conf.guild);
+	let msg = (await channel.messages.fetch({ limit: 5 })).filter(msg => msg.author.id == cli.user.id).first();
+	function getServFields(){
+		let fields = [];
+		for(let key in servers){
+			let serv = servers[key];
+			let field = [];
+			
+			let ct = `\n🔎 ${serv.players.map(n=>n[0]).join(", ")} (${serv.players.length} / 10 players)`;
+			let lastW = `\n🥇 ${serv.lastWon}`;
+			let mode = serv.gamemode == "Empire" ? "⚔" : "👑";
+
+			field[0] = `🖥 **Server ${serv.id.toUpperCase()} - ${serv.isVip ? "VIP" : "PUBLIC"}`;
+			field[1] = `${mode} ${serv.gamemode}\n🕓 ${serv.elapsedTime} - ${serv.stage} Stage ${ct}${lastW}`;
+
+			fields.push(field);
+		}
+		return fields;
+	}
+	if(!msg){
+		msg = await channel.send(util.getBaseEmbed(":clipboard: Risky Strats Servers", "A list of information about currently active servers. Refreshes every 15 seconds.", "succ", getServFields()));
+	}
+	setTimeout(()=>{
+		msg.edit(util.getBaseEmbed(":clipboard: Risky Strats Servers", "A list of information about currently active servers. Refreshes every 15 seconds.", "succ", getServFields()));
+	},15000)
+	console.log("Live servers loaded");
+}
 function addToAwaiting(m, data){
 	commandsAwaiting[m.author.id] = data;
 }
@@ -101,6 +130,8 @@ cli.on("ready", async ()=>{
 	//guild.members.fetch(); // caches all members
 	console.log("Bot logged in & guild registered");
 	handleGameReact();
+	if(global.servers)
+		handleLiveServers();
 });
 
 cli.on("guildMemberAdd", m => {
