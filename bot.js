@@ -23,7 +23,7 @@ if(!global.db){
 }
 
 function initCommands(){
-	fs.readdir("./commands/", (_, files)=>{
+	fs.readdir("./rsbot/commands/", (_, files)=>{
 		for(let file of files)
 			try { registerCommand(require("./commands/" + file), file); }
 			catch(e) { console.log(`error loading command file ${file}: \n${e}`); }
@@ -35,6 +35,7 @@ function registerCommand(cmd, file){
 	if(!cmd.data.alias)
 		cmd.data.alias = [];
 	
+	cmd.data.name = cmd.data.name.toLowerCase();
 	commands.push(cmd);
 }
 async function handleGameReact(){
@@ -70,10 +71,10 @@ async function handleLiveServers(){
 			let field = [];
 			
 			let ct = `\n🔎 ${serv.players.map(n=>n[0]).join(", ")} (${serv.players.length} / 10 players)`;
-			let lastW = `\n🥇 ${serv.lastWon}`;
+			let lastW = `\n🥇 ${serv.lastWon || "No winner"}`;
 			let mode = serv.gamemode == "Empire" ? "⚔" : "👑";
 
-			field[0] = `🖥 **Server ${serv.id.toUpperCase()} - ${serv.isVip ? "VIP" : "PUBLIC"}`;
+			field[0] = `🖥 **Server ${serv.id.toUpperCase()} - ${serv.isVip ? "VIP" : "PUBLIC"}**`;
 			field[1] = `${mode} ${serv.gamemode}\n🕓 ${serv.elapsedTime} - ${serv.stage} Stage ${ct}${lastW}`;
 
 			fields.push(field);
@@ -83,8 +84,10 @@ async function handleLiveServers(){
 	if(!msg){
 		msg = await channel.send(util.getBaseEmbed(":clipboard: Risky Strats Servers", "A list of information about currently active servers. Refreshes every 15 seconds.", "succ", getServFields()));
 	}
-	setTimeout(()=>{
-		msg.edit(util.getBaseEmbed(":clipboard: Risky Strats Servers", "A list of information about currently active servers. Refreshes every 15 seconds.", "succ", getServFields()));
+	setInterval(()=>{
+		msg.edit(
+			util.getBaseEmbed(":clipboard: Risky Strats Servers", "A list of information about currently active servers. Refreshes every 15 seconds.", "succ", getServFields()).setTimestamp(new Date().getTime())
+		);
 	},15000)
 	console.log("Live servers loaded");
 }
@@ -93,8 +96,8 @@ function addToAwaiting(m, data){
 }
 
 cli.on("message", m=>{
-	if(m.author.id != "250329235497943040" && m.author.id != "250329851410644993") return;
-	if(m.channel.id != "659219861393637377" && m.channel.id != "812376751438430308" && m.channel.id != "330456925181444106") return;
+	//if(m.author.id != "250329235497943040" && m.author.id != "250329851410644993") return;
+	if(m.channel.id == conf.channels.admin) return;
 	if(commands.length == 0) return;
 	if(!m.content.startsWith(conf.prefix) && !commandsAwaiting[m.author.id]){
 		memberActivity[m.author.id] = true;
@@ -102,7 +105,7 @@ cli.on("message", m=>{
 	}
 		
 	let args = m.content.split(" ");
-	let ucmd = args.splice(0, 1)[0].slice(conf.prefix.length, 2000);
+	let ucmd = args.splice(0, 1)[0].slice(conf.prefix.length, 2000).toLowerCase();
 	
 	if(commandsAwaiting[m.author.id]){
 		let info = commandsAwaiting[m.author.id];
@@ -121,13 +124,13 @@ cli.on("message", m=>{
 	}
 	
 	for(let cmd of commands)
-		if(cmd.data.name.toLowerCase() == ucmd.toLowerCase())
+		if(cmd.data.name == ucmd || cmd.data.alias.includes(ucmd))
 			commandsAwaiting[m.author.id] = cmd.run(m, args, addToAwaiting);
 });
 
 cli.on("ready", async ()=>{
 	let guild = await cli.guilds.fetch(conf.guild);
-	//guild.members.fetch(); // caches all members
+	guild.members.fetch();
 	console.log("Bot logged in & guild registered");
 	handleGameReact();
 	if(global.servers)
@@ -158,24 +161,31 @@ setInterval(async () => { // handle awaiting command cleanup & member activity u
 	let guild = await cli.guilds.fetch(conf.guild);
 	for(let uid in memberActivity){
 		let udata = await data.get("userdata", uid);
-		if(!udata) return;
+		console.log("active update",uid,udata);
+		if(!udata){
+			delete memberActivity[uid];
+			continue;
+		}
 		let memb = await guild.members.fetch(uid);
 		let activity = udata.activity;
 		
 		if(activity.totalMsgs) activity.totalMsgs += 1;
 		else activity.totalMsgs = 1;
 		
-		activity.totalMsgs = Math.min(activity.totalMsgs, 1200); // don't let people accumulate more than 1200 messages, since 1200 messages = 3 months of active member
+		activity.totalMsgs = Math.min(activity.totalMsgs, conf.activeMemMsgs * 3); // don't let people accumulate more than 1200 messages, since 1200 messages = 3 months of active member
 
 		if(activity.currentMonth === undefined) activity.currentMonth = monthN;
 		if(activity.currentMonth != monthN){ // a month has passed, determine if they receive role
-			if(activity.totalMsgs >= 400)
+			if(activity.totalMsgs >= conf.activeMemMsgs)
 				memb.roles.add(conf.roles.active);
 			else
 				memb.roles.remove(conf.roles.active); // what happens when you try to remove a role they dont have? who knows lets find out
 
-			activity.totalMsgs = Math.max(activity.totalMsgs - 400, 0); // if 800 messages were sent that month, only take 400 away and let the rest carry over 
+			activity.totalMsgs = Math.max(activity.totalMsgs - conf.activeMemMsgs, 0); // if 800 messages were sent that month, only take 400 away and let the rest carry over 
 		}
+		if(activity.currentMonth == monthN && activity.totalMsgs == conf.activeMemMsgs)
+			memb.roles.add(conf.roles.active);
+		
 		delete memberActivity[uid];
 		activity.currentMonth = monthN;
 

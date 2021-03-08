@@ -1,9 +1,9 @@
 let util = require("../utils/util.js");
 let data = require("../utils/data.js");
-let waiting = {};
+
 module.exports.data = {
-	name: "stats2",
-	alias: ["stats3"]
+	name: "stats",
+	alias: []
 }
 
 module.exports.run = (m, args, awaiting)=>{
@@ -15,13 +15,15 @@ module.exports.run = (m, args, awaiting)=>{
 			if(!stats)
 				return m.channel.send(util.getBaseEmbed("No data for user", `The player ${args[0]} has no data.\nThis means they have either never played or have not played recently!`, "fail"));
 
+			let wl = stats.Wins / (stats.TotalMatches - stats.Wins);
 			m.channel.send(util.getBaseEmbed(`:bar_chart: ${args[0]}'s Statistics`, "", "succ", [
 				[":trophy: Wins", stats.Wins, true],
 				[":hand_splayed: Losses", stats.TotalMatches - stats.Wins, true],
 				[":hourglass_flowing_sand: Total Matches", stats.TotalMatches, true],
+				[":chart_with_upwards_trend: W/L Ratio", Number.isNaN(wl) ? 0 : wl.toFixed(2), true],
 				[":calendar_spiral: Last Win", (stats.LastWin && new Date(stats.LastWin * 1000) || "never"), true],
 				[":diamond_shape_with_a_dot_inside: Points", stats.Points, true]
-			]))
+			]).setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${info.id}&width=420&height=420&format=png`))
 		})
 	});
 }

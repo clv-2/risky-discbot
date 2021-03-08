@@ -1,5 +1,6 @@
 module.exports = {
 	prefix: "!",
+	activeMemMsgs: 400,
 	roles: {
 		member: "239826816972488705",
 		unverified: "812375598278246400",
