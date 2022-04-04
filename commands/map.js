@@ -3,7 +3,7 @@ let data = require("../utils/data.js");
 let conf = require("../conf.js");
 
 module.exports.data = {
-	name: "list",
+	name: "map",
 	alias: [],
 	description: "View a map for a specified server",
 	allowedChannels: [conf.channels.admin]
