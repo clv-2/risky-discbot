@@ -3,7 +3,8 @@ let data = require("../utils/data.js");
 
 module.exports.data = {
 	name: "stats",
-	alias: []
+	alias: [],
+	description: "View a player's statistics"
 }
 
 module.exports.run = (m, args, awaiting)=>{

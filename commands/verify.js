@@ -2,9 +2,12 @@ let util = require("../utils/util.js");
 let data = require("../utils/data.js");
 let conf = require("../conf.js");
 let waiting = {};
+
 module.exports.data = {
 	name: "verify",
-	alias: []
+	alias: [],
+	description: "Verify your account",
+	allowedChannels: [conf.channels.verify]
 }
 /*
 util.rbxFromDisc("250329235497943040").then(console.log); // {id, name}

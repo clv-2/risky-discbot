@@ -1,6 +1,3 @@
-if(!global.db){
-	return console.log("No db found");
-}
 let data = { rs: {} };
 let col = db.collection("risky_disc_data");
 let query = {};

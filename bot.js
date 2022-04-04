@@ -17,7 +17,7 @@ if(!global.db){
 		if(err)
 			return process.exit(console.log("Failed to get database") || 1);
 		global.db = cli.db("main_db");
-		data = data = require("./utils/data.js");
+		data = require("./utils/data.js");
 		initCommands();
 	})
 }
@@ -34,6 +34,11 @@ function registerCommand(cmd, file){
 		return console.log(`error loading command file ${file}: \nmissing name and or main func`);
 	if(!cmd.data.alias)
 		cmd.data.alias = [];
+	if(!cmd.data.allowedChannels)
+		cmd.data.allowedChannels = [];
+	if(!cmd.data.description)
+		cmd.data.description = "";
+		
 	
 	cmd.data.name = cmd.data.name.toLowerCase();
 	commands.push(cmd);
@@ -95,9 +100,8 @@ function addToAwaiting(m, data){
 	commandsAwaiting[m.author.id] = data;
 }
 
-cli.on("message", m=>{
-	//if(m.author.id != "250329235497943040" && m.author.id != "250329851410644993") return;
-	if(m.channel.id == conf.channels.admin) return;
+cli.on("message", m => {
+	//if(m.channel.id == conf.channels.admin) return;
 	if(commands.length == 0) return;
 	if(!m.content.startsWith(conf.prefix) && !commandsAwaiting[m.author.id]){
 		memberActivity[m.author.id] = true;
@@ -125,7 +129,8 @@ cli.on("message", m=>{
 	
 	for(let cmd of commands)
 		if(cmd.data.name == ucmd || cmd.data.alias.includes(ucmd))
-			commandsAwaiting[m.author.id] = cmd.run(m, args, addToAwaiting);
+			if(cmd.data.allowedChannels.length == 0 || cmd.data.allowedChannels.includes(m.channel.id))
+				commandsAwaiting[m.author.id] = cmd.run(m, args, addToAwaiting, commands);
 });
 
 cli.on("ready", async ()=>{
@@ -198,7 +203,6 @@ setInterval(async () => { // handle old active member role removing
 	let role = await guild.roles.fetch(conf.roles.active);
 	let monthN = new Date().getUTCMonth();
 	role.members.map(async memb => {
-		if(memb.id != "250329235497943040" && memb.id != "250329851410644993") return;
 		let udata = await data.get("userdata", memb.id);
 		if(!udata) return;
 		let activity = udata.activity;
