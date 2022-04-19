@@ -61,7 +61,7 @@ function gotUsername(m, args, awaiting){
 					m.channel.send(util.getBaseEmbed("Verification", `<@${m.author.id}>
 					1. Visit [here](https://www.roblox.com/users/${dat.id}/profile)
 					2. Click the "edit" icon next to "About"
-					3. Add this code: "${waiting[m.author.name].code}" 
+					3. Add this code: \`\`\`${waiting[m.author.name].code}\`\`\` 
 					4. Click save and say you are done!`, "prog"));
 				}
 				
