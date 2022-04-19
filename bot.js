@@ -222,4 +222,4 @@ setInterval(async () => { // handle old active member role removing
 	});
 }, 60000 * 5);
 
-cli.login(priv.token);
+//cli.login(priv.token);

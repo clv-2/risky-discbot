@@ -48,9 +48,9 @@ function rbxNameFromId(id){
 }
 function profileContains(id, txt){
 	return new Promise(res => {
-		Promise.all([httpsPromise("https://users.roblox.com/v1/users/"+id), httpsPromise("https://users.roblox.com/v1/users/"+id+"/status")]).then(vals => {
-			let desc = JSON.parse(vals[0]).description, status = JSON.parse(vals[1]).status;
-			if((desc && desc.indexOf(txt) != -1) || (status && status.indexOf(txt) != -1))
+		httpsPromise("https://users.roblox.com/v1/users/"+id).then(val => {
+			let desc = JSON.parse(val).description
+			if(desc && desc.indexOf(txt) != -1)
 				res(true);
 			res(false);
 		});

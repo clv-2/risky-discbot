@@ -24,17 +24,18 @@ function verify(member, robloxInfo){
 	member.roles.add(conf.roles.member);
 	member.roles.remove(conf.roles.unverified);
 	member.setNickname(robloxInfo.name);
+	console.log("Verified");
 	data.set("userdata", member.id, {robloxInfo, activity: {}});
-
 }
 function gotDone(m, args){
 	let expected = waiting[m.author.name].code;
 	let rbxInfo = waiting[m.author.name].robloxInfo;
 	
 	util.profileContains(rbxInfo.id, expected).then(contains => {
-		if(contains)
+		if(contains){
 			verify(m.member, rbxInfo);
-		else{
+			m.channel.send(util.getBaseEmbed("Successfully verified", `You have verified as ${rbxInfo.name}`, "succ"));
+		}else{
 			m.channel.send(util.getBaseEmbed("Code not found", `<@${m.author.id}>, code "${expected}" not found on ${rbxInfo.name}'s profile, please verify again.`, "fail"));
 		}
 		delete waiting[m.author.name];
@@ -47,7 +48,7 @@ function gotUsername(m, args, awaiting){
 				if(accts && accts.indexOf(dat.id) != -1)
 					verify(m.member, dat);
 				else{
-					waiting[m.author.name] = {robloxInfo: dat, code: util.genCode(5)}
+					waiting[m.author.name] = {robloxInfo: dat, code: util.genCode(3)}
 					awaiting(m, {
 						started: new Date().getTime(),
 						timeout: 60 * 5,
@@ -57,7 +58,11 @@ function gotUsername(m, args, awaiting){
 							delete waiting[m.author.name];
 						}
 					});
-					m.channel.send(util.getBaseEmbed("Verification", `<@${m.author.id}>, put the code "${waiting[m.author.name].code}" in your blurb or status, then say when you are done!`, "prog"));
+					m.channel.send(util.getBaseEmbed("Verification", `<@${m.author.id}>
+					1. Visit [here](https://www.roblox.com/users/${dat.id}/profile)
+					2. Click the "edit" icon next to "About"
+					3. Add this code: "${waiting[m.author.name].code}" 
+					4. Click save and say you are done!`, "prog"));
 				}
 				
 			});
