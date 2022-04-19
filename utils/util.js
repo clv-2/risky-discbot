@@ -84,7 +84,7 @@ function genCode(len){
 	let code = "";
 	for(i = 0; i < len; i++){
 		let subj = genres[rand(genres.length)];
-		code += subj[rand(subj.length)].toLowerCase() + " ";
+		code += subj[rand(subj.length)].toLowerCase().replace(/[^a-zA-Z ]/g, "") + " ";
 	}
 	return code.trim();
 }

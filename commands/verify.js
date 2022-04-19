@@ -36,7 +36,6 @@ function gotDone(m, args){
 			verify(m.member, rbxInfo);
 		else{
 			m.channel.send(util.getBaseEmbed("Code not found", `<@${m.author.id}>, code "${expected}" not found on ${rbxInfo.name}'s profile, please verify again.`, "fail"));
-
 		}
 		delete waiting[m.author.name];
 	});
@@ -73,7 +72,10 @@ module.exports.run = (m, args, awaiting)=>{
 	m.channel.send(util.getBaseEmbed("Verification", `<@${m.author.id}>, enter your Roblox username to continue.`, "prog"));
 	return {
 		started: new Date().getTime(),
-		timeout: 60,
-		func: gotUsername
+		timeout: 60 * 5,
+		func: gotUsername,
+		timeoutFunc: function(){
+			m.channel.send(util.getBaseEmbed("Timeout", `<@${m.author.id}>, you have ran out of time to verify your profile. Please try again.`, "fail"));
+		}
 	}
 }
