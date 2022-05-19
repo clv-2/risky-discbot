@@ -5,7 +5,7 @@ let genres = [col]; // "couldn't you put this in a different file" -> yes i don'
 // array of one array since i did originally have an array of arrays with separate lists but roblox censor was trash so i am now limited to just a list of their colors
 // (if any of these ever are censored, then they are literally censoring their own colors)
 
-function httpsPromise(url){
+function httpsGet(url){
 	return new Promise(res => {
 		https.get(url, str => {
 			let data = "";
@@ -16,9 +16,30 @@ function httpsPromise(url){
 		});
 	});
 }
+function httpsPost(hostname, path, data){
+	return new Promise(res => {
+		data = JSON.stringify(data);
+		let opt = {
+			hostname, path,
+			method: "POST",
+			headers: {"Content-Type": "application/json"}
+		}
+
+		let req = https.request(opt, str => {
+			let data = "";
+			str.on("data", chunk => data += chunk);
+			str.on("end", () => {
+				res(data);
+			});
+		});
+
+		req.write(data);
+		req.end();
+	});
+}
 function rbxFromDisc(disc){
 	return new Promise(async res => {
-		let resp = await httpsPromise("https://verify.eryn.io/api/user/"+disc);
+		let resp = await httpsGet("https://verify.eryn.io/api/user/"+disc);
 		let parsed = JSON.parse(resp);
 		if(parsed.status == "ok")
 			res({id: parsed.robloxId, name: parsed.robloxUsername});
@@ -28,27 +49,28 @@ function rbxFromDisc(disc){
 }
 function rbxIdFromName(name){
 	return new Promise(async res => {
-		let resp = await httpsPromise("https://api.roblox.com/users/get-by-username?username="+name);
+		let obj = {usernames: [name]}
+		let resp = await httpsPost("users.roblox.com", "/v1/usernames/users", obj);
 		let parsed = JSON.parse(resp);
 		if(!parsed.errors)
-			res({id: parsed.Id, name: parsed.Username});
+			res({id: parsed.data[0].id, name: parsed.data[0].name});
 		else
 			res();
 	});
 }
 function rbxNameFromId(id){
 	return new Promise(async res => {
-		let resp = await httpsPromise("https://api.roblox.com/users/"+id);
+		let resp = await httpsGet("https://users.roblox.com/v1/users/"+id);
 		let parsed = JSON.parse(resp);
 		if(!parsed.errors)
-			res({id: parsed.Id, name: parsed.Username});
+			res({id: parsed.id, name: parsed.name});
 		else
 			res();
 	});
 }
 function profileContains(id, txt){
 	return new Promise(res => {
-		httpsPromise("https://users.roblox.com/v1/users/"+id).then(val => {
+		httpsGet("https://users.roblox.com/v1/users/"+id).then(val => {
 			let desc = JSON.parse(val).description
 			if(desc && desc.indexOf(txt) != -1)
 				res(true);
@@ -58,7 +80,7 @@ function profileContains(id, txt){
 }
 function getLinkedAccount(id){
 	return new Promise(res => {
-		Promise.all([httpsPromise("https://api.blox.link/v1/user/"+id), httpsPromise("https://verify.eryn.io/api/user/"+id)]).then(vals => {
+		Promise.all([httpsGet("https://api.blox.link/v1/user/"+id), httpsGet("https://verify.eryn.io/api/user/"+id)]).then(vals => {
 			let bloxlink = JSON.parse(vals[0]).primaryAccount, rover = JSON.parse(vals[1]).robloxId;
 			if(bloxlink || rover)
 				res([Number(bloxlink), Number(rover)])
